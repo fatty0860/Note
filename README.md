@@ -8,3 +8,4 @@
   當前目錄執行grub2-mkconfig -o ./grub.cfg  
   將新設定檔覆蓋 /boot/grub2/grub.cfg  
 3. 重開機.  
+  重啓server後，配置生效。可用過cat /proc/cmdline查看結果
