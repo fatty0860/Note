@@ -9,3 +9,8 @@
   將新設定檔覆蓋 /boot/grub2/grub.cfg  
 3. 重開機.  
   重啓server後，配置生效。可用過cat /proc/cmdline查看結果
+
+## Command 
+1. 查詢cpu時脈  
+  watch -n1 "cat /proc/cpuinfo | grep \"^[c]pu MHz\""  
+  
