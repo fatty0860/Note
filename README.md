@@ -13,4 +13,5 @@
 ## Command 
 1. 查詢cpu時脈  
   watch -n1 "cat /proc/cpuinfo | grep \"^[c]pu MHz\""  
-  
+
+## test
