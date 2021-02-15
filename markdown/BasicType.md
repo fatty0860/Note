@@ -8,6 +8,7 @@ Markdown 基本語法
     - [清單](#list)
     - [超連結](#hyperlink)
     - [圖片](#image)
+    - [表格](#table)
 ---
 <h2 id='basicType'>基本語法</h2>  
 
@@ -52,5 +53,22 @@ Markdown 基本語法
 ```
 
 ![alt text](./data/DSC04028.jpeg "Optional title")
+
+---
+> <h3 id='table'>表格</h3>
+分隔線列中，每欄的水平分隔符號數量至少要有 3 個，3 個以上無論多寡皆不影響。
+```
+Age           | Time  | Food | Gold  
+--------------|-------|-----:|-----: 
+Feudal Age    | 02:10 |  500 |    0  
+Castle Age    | 02:40 |  800 |  200
+Imperial Age  | 03:30 | 1000 |  800 
+```
+
+Age           | Time  | Food | Gold  
+--------------|-------|-----:|-----: 
+Feudal Age    | 02:10 |  500 |    0  
+Castle Age    | 02:40 |  800 |  200
+Imperial Age  | 03:30 | 1000 |  800 
 
 ---
