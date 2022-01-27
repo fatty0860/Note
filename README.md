@@ -6,5 +6,13 @@
 - 程式開發相關
     - [c/c++](development/c_cpp/README.md)
     - [go](development/go/README.md)
-- 作業系統
-	- TEST
+    - Virtual Machine   
+        - UTM : https://mac.getutm.app/
+        - Virt-Manager : https://virt-manager.org/download/  
+        - VirtualBox : https://www.virtualbox.org/
+        - multipass : https://multipass.run/ .  
+          比較lite的選擇  
+
+- 其他 
+  - bash PS1 產生器 : https://bashrcgenerator.com/ 
+    
