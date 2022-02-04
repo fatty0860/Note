@@ -15,4 +15,8 @@
     - Virtual Machine   
 - 其他 
   - bash PS1 產生器 : https://bashrcgenerator.com/ 
+- mac mini m1   
+  - 控制外接螢幕音量與亮度 : https://github.com/MonitorControl/MonitorControl
+
+
     
