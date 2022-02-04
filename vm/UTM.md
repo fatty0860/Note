@@ -21,6 +21,20 @@ vm系統與主系統溝通的driver
         1. shift + F10 叫出cmd  
         1. taskmgr 
         1. kill **Network Connection Flow** 
+- 調整設定(powershell)
+    - 調整模式  
+        參考 https://appuals.com/change-dark-light-mode-windows-11/
+        - Dark Mode
+            ```
+            Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 0 -Type Dword -Force
 
+            Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name SystemUsesLightTheme -Value 0 -Type Dword -Force
+            ```
+        - Light Mode
+            ```
+            Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name AppsUseLightTheme -Value 1 -Type Dword -Force
+
+            Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name SystemUsesLightTheme -Value 1 -Type Dword -Force
+            ```
 
 
