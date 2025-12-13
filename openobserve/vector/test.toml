@@ -1,0 +1,143 @@
+# ==========================================================
+# Global: 全域設定 (修正錯誤 1)
+# ==========================================================
+# 解決 data_dir does not exist 錯誤
+# 指定一個當前目錄下的資料夾存放 Vector 的暫存檔
+data_dir="/home/yichen/ExecEnv/vec/data"
+
+# ==========================================================
+# Source: 讀取 Log 檔案
+# ==========================================================
+[sources.fix_log_files]
+type = "file"
+
+# 請修改下方的路徑為你實際的 Log 目錄, 可以用逗點隔開, 也可以換行
+# 可以傳環境變數
+#include = [ "/home/yichen/ExecEnv/vec/log/TEST_*.log.*" ]
+include = [ "/home/yichen/ExecEnv/vec/log/${TODAY}/TEST_*.log.*" ]
+
+# 忽略超過 24 小時沒變動的舊檔案 (單位：秒)
+# ignore_older_secs = 86400
+
+# read_from = "end" 表示只讀取 Vector 啟動後新增的資料 (適合 Production)
+# read_from = "beginning" 表示每次重啟都會把整個檔案重讀一次 (適合測試)
+read_from = "beginning"
+
+# ==========================================================
+# Transform: 使用 Base64 繞過特殊字元限制
+# ==========================================================
+[transforms.parse_fix_final]
+type = "remap"
+inputs = ["fix_log_files"]
+source = '''
+  .message = string!(.message)
+  # =======================================================
+  # [新增] 步驟 0: 過濾掉非 FIX 的 Log
+  # =======================================================
+  # 1. 基礎檢查：必須包含 8=FIX (這是原本的)
+  if !match(.message, r'8=FIX') {
+    abort
+  }
+
+  # 2. [新增] 過濾 35=1 (Test Request)
+  # 只要訊息內容包含 35=1 就丟棄
+  if match(.message, r'35=1') {
+    abort
+  }
+
+  # 3. [新增] 過濾 "8=FIX" 之前出現 "Resend" (不分大小寫)
+  # Regex 解析：
+  # (?i)   -> 開啟不分大小寫模式 (Case Insensitive)
+  # resend -> 尋找關鍵字
+  # .* -> 中間夾雜任意字元
+  # 8=FIX  -> 直到遇到 8=FIX 為止
+  if match(.message, r'(?i)resend.*8=FIX') {
+    abort
+  }
+
+
+  # 1. Regex 提取
+  .structured = parse_regex!(.message, r'^(?P<logTm>\S+)\s+\[(?P<logType>\w+)\]\s+(?P<fix_body>.*)$')
+
+  # 2. 賦值
+  .logTm   = .structured.logTm
+  .logType = .structured.logType
+  .message = .structured.fix_body
+  
+  # -------------------------------------------------------
+  # 3. 產生 SOH 字元 (完全不用反斜線)
+  # -------------------------------------------------------
+  # "AQ==" 是 0x01 (SOH) 的 Base64 編碼
+  # 我們把它解碼並轉成字串，存入變數 .soh_char
+  .soh_char = string(decode_base64!("AQ=="))
+
+  # 4. 替換
+  # 把 .soh_char 替換成 "|"，這樣 .clean_message 就是安全的純文字了
+  .clean_message = replace(.message, .soh_char, "|")
+
+  # =======================================================
+  # [關鍵修復] 清理字串
+  # =======================================================
+  # 1. 清除前後空白 (\s)
+  # r'^\s+|\s+$' 意思是：開頭的空白 OR 結尾的空白 -> 換成空字串
+  .clean_message = replace(.clean_message, r'^\s+|\s+$', "")
+
+  # 2. 清除前後多餘的 "|"
+  # r'^\|+|\|+$' 意思是：開頭的 | OR 結尾的 | -> 換成空字串
+  # 這樣就能解決 parse_key_value 讀到空值的問題
+  .clean_message = replace(.clean_message, r'^\|+|\|+$', "")
+
+
+  # 5. 解析 (現在可以用 "|" 解析了)
+  .fix_tags = parse_key_value!(.clean_message, field_delimiter: "|", key_value_delimiter: "=")
+  .rename_kv = map_keys(.fix_tags) -> |key| { "tag" + key }
+
+  # merge 到根目錄(.)
+  . = merge(., .rename_kv)
+
+  # -------------------------------------------------------
+  
+  # 6. 欄位整理
+  .msgType     = .tag35
+  .symbol      = .tag55
+  .side        = .tag54
+  .clOrdID     = .tag11
+  .origClOrdID = .tag41
+
+  # 7. 數值轉型
+  if .tag6  != null { .avgpx   = parse_float(.tag6)  ?? 0.0 }
+  if .tag31 != null { .lastpx  = parse_float(.tag31) ?? 0.0 }
+  if .tag44 != null { .price   = parse_float(.tag44) ?? 0.0 }
+
+  if .tag14 != null { .cumqty  = parse_int(.tag14)   ?? 0 }
+  if .tag32 != null { .lastQty = parse_int(.tag32)   ?? 0 }
+  if .tag38 != null { .qty     = parse_int(.tag38)   ?? 0 }
+
+  # 清理
+  del(.structured)
+  del(.soh_char)
+  del(.clean_message)
+  del(.fix_tags)
+  del(.rename_kv)
+'''
+
+# ==========================================================
+# Sink: 發送到 OpenObserve
+# ==========================================================
+[sinks.to_openobserve]
+type = "http"
+inputs = ["parse_fix_final"]
+
+# !!! 重要：請確認你的 OpenObserve 伺服器位置 !!!
+# 如果是自架 (Self-hosted)，通常 port 是 5080
+# URL 格式: http://<你的IP>:5080/api/<組織名稱>/<Stream名稱>/_json
+# 預設組織是 "default"，這裡我們將 Stream 命名為 "default" (或你可以改成 "fix_stream")
+uri = "http://localhost:5080/api/default/fixoms/_json"
+
+encoding.codec = "json"
+compression = "gzip"
+
+[sinks.to_openobserve.auth]
+strategy = "basic"
+user = "fix@test.com"
+password = "n8gye4yGgQeRdGiS"
