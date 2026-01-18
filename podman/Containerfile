@@ -1,0 +1,20 @@
+# 1. 基於 UBI 9
+FROM docker.io/redhat/ubi9:9.4
+
+# 2. 設定環境變數 (預設)
+ENV APP_MODE=development \
+    MY_TOOLS_PATH=/opt/mytools
+
+# 3. 安裝你需要的工具 (不再需要掛載後才安裝)
+RUN dnf install -y gcc gcc-c++ make vim wget && \
+    dnf clean all
+
+# 4. 建立自訂使用者 yichen (UID 1000)
+RUN useradd -u 1000 -m yichen
+
+# 5. 設定預設以 yichen 身分執行
+USER yichen
+WORKDIR /home/yichen
+
+# 啟動時預設執行的指令
+CMD ["/bin/bash"]
